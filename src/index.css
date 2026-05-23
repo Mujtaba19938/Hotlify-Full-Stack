@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gray-950: #050814; /* Midnight navy/black page background */
+  --color-gray-900: #0d1527; /* Rich slate/navy card background */
+  --color-gray-800: #142035; /* Lighter navy for sub-cards and inputs */
+  --color-gray-700: #1e2e4e; /* Subtle navy border / separator color */
+}
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --color-income: #dcf344;
+  --color-expense: #1c64f2;
+  --color-pie-housekeeping: #1c64f2;
+  --color-pie-utilities: #dcf344;
+  --color-pie-foodbev: #b3d4ff;
+  --color-pie-remaining: #f3f4f6;
+  --color-confirmed: #1c64f2;
+  --color-canceled: #dcf344;
+  --color-pie-1: #1c64f2;
+  --color-pie-2: #dcf344;
+  --color-pie-3: #fef08a;
+  --color-pie-4: #e5e7eb;
+  --color-pie-5: #d1d5db;
+  --color-pie-6: #bfdbfe;
+  --color-bar-label-yellow: #111827;
+  --color-bar-label-blue: #ffffff;
+}
+
+.dark {
+  --color-income: #3b82f6;
+  --color-expense: #142035;
+  --color-pie-housekeeping: #3b82f6;
+  --color-pie-utilities: #818cf8;
+  --color-pie-foodbev: #1e2e4e;
+  --color-pie-remaining: #142035;
+  --color-confirmed: #3b82f6;
+  --color-canceled: #ef4444; /* Canceled stays are red/pink in dark mode */
+  --color-pie-1: #3b82f6;
+  --color-pie-2: #818cf8; /* Purple instead of yellow */
+  --color-pie-3: #a855f7; /* Violet instead of yellow */
+  --color-pie-4: #1e2e4e;
+  --color-pie-5: #142035;
+  --color-pie-6: #2563eb;
+  --color-bar-label-yellow: #ffffff; /* Purple bar has white text */
+  --color-bar-label-blue: #ffffff; /* Blue bar has white text */
+}
+
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+}
+
+.blur-overlay {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 10vh;
+  z-index: 2;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(25px) saturate(1.5);
+  backdrop-filter: blur(25px) saturate(1.5);
+}
+
+.blur-overlay-top {
+  top: 0;
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+
+.blur-overlay-bottom {
+  bottom: 0;
+  -webkit-mask-image: linear-gradient(to top, black 70%, transparent 100%);
+  mask-image: linear-gradient(to top, black 70%, transparent 100%);
+}

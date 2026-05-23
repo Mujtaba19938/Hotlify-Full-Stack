@@ -1,0 +1,8 @@
+{
+  "name": "Hotelify Dashboard",
+  "description": "Hotel management dashboard with KPIs, charts, and bookings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
