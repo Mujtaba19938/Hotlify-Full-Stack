@@ -18,7 +18,7 @@ import { RegisterLogin } from './components/RegisterLogin';
 
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('Create New Room');
+  const [currentPage, setCurrentPage] = useState('Dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Initialize theme from localStorage or system preference

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Building, LogIn, ArrowLeft, Mail, Lock, User, Phone, Check, ChevronRight } from 'lucide-react';
 
+import loginBg from '../assets/login-bg.jpg';
+
 interface RegisterLoginProps {
   onLoginSuccess: () => void;
   onGoBack: () => void;
@@ -40,15 +42,10 @@ export function RegisterLogin({ onLoginSuccess, onGoBack }: RegisterLoginProps) 
     onLoginSuccess();
   };
 
-  // Luxury resort image matching the branding
-  const IMG = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920&h=1080";
+  const IMG = loginBg;
 
   return (
     <div className="hero w-full h-screen flex items-center justify-center relative font-sans">
-      
-      {/* Blur overlays provided by the user */}
-      <div className="blur-overlay blur-overlay-top" />
-      <div className="blur-overlay blur-overlay-bottom" />
       
       {/* Background Image Container */}
       <div 

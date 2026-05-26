@@ -1,8 +1,38 @@
-import React from 'react';
-import { MoreHorizontal, Plus, Check, MapPin, Building, Key, CheckCircle, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { MoreHorizontal, Plus, Check, MapPin, Building, Key, CheckCircle, Clock, X } from 'lucide-react';
 import { tasksData, activitiesData } from '../data';
 
 export function RightSidebar() {
+  const [tasks, setTasks] = useState(tasksData);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+
+  const toggleTask = (id: number) => {
+    setTasks(prev => prev.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+  };
+
+  const addTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+    const formattedDate = today.toLocaleDateString('en-US', options);
+
+    const newTask = {
+      id: Date.now(),
+      title: newTaskTitle.trim(),
+      date: formattedDate,
+      completed: false
+    };
+
+    setTasks(prev => [newTask, ...prev]);
+    setNewTaskTitle('');
+    setShowAddForm(false);
+  };
+
   return (
     <aside className="w-full xl:w-80 flex-shrink-0 flex flex-col gap-6">
       
@@ -58,19 +88,66 @@ export function RightSidebar() {
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold text-gray-900 dark:text-white transition-colors">Tasks</h3>
-          <button className="h-6 w-6 rounded-full bg-[#dcf344] dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 flex items-center justify-center text-gray-900 hover:bg-[#d4ed36] transition-all cursor-pointer">
-            <Plus className="h-4 w-4" />
+          <button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="h-6 w-6 rounded-full bg-[#dcf344] dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 flex items-center justify-center text-gray-900 hover:bg-[#d4ed36] transition-all cursor-pointer"
+          >
+            {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </button>
         </div>
+
+        {showAddForm && (
+          <form onSubmit={addTask} className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 animate-fadeIn">
+            <input
+              type="text"
+              placeholder="Enter task title..."
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              className="w-full text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#1c64f2] transition-colors"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => { setShowAddForm(false); setNewTaskTitle(''); }}
+                className="px-2.5 py-1 text-[10px] font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-2.5 py-1 bg-[#1c64f2] text-white text-[10px] font-semibold rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+              >
+                Add Task
+              </button>
+            </div>
+          </form>
+        )}
         
         <div className="space-y-4">
-          {tasksData.map((task) => (
-            <div key={task.id} className="flex gap-3">
-              <div className="mt-1">
-                <div className="w-5 h-5 rounded border-2 border-gray-200 dark:border-gray-700 flex flex-shrink-0 cursor-pointer"></div>
+          {tasks.map((task) => (
+            <div 
+              key={task.id} 
+              onClick={() => toggleTask(task.id)}
+              className="flex gap-3 items-start group cursor-pointer"
+            >
+              <div className="mt-0.5 flex-shrink-0">
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                  task.completed 
+                    ? 'bg-[#1c64f2] border-[#1c64f2] dark:bg-blue-600 dark:border-blue-600' 
+                    : 'border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500'
+                }`}>
+                  {task.completed && <Check className="h-3 w-3 text-white stroke-[3px]" />}
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug transition-colors">{task.title}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-xs font-semibold leading-snug transition-all ${
+                  task.completed 
+                    ? 'text-gray-400 dark:text-gray-500 line-through' 
+                    : 'text-gray-800 dark:text-gray-200'
+                }`}>
+                  {task.title}
+                </p>
                 <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 transition-colors">{task.date}</p>
               </div>
             </div>
@@ -87,7 +164,7 @@ export function RightSidebar() {
           </button>
         </div>
         
-        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gray-100 dark:before:bg-gray-800 before:z-0">
+        <div className="space-y-6">
           {activitiesData.map((activity, index) => {
             let Icon = Key;
             let iconBg = "bg-[#dcf344] text-gray-900 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/20";
