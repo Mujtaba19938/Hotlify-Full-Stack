@@ -44,9 +44,18 @@ export default function App() {
     }
   }, [darkMode]);
 
+  // Auth session check
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (!user && currentPage !== 'Register & Login') {
+      setCurrentPage('Register & Login');
+    }
+  }, [currentPage]);
+
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
   if (currentPage === 'Register & Login') {
+    localStorage.removeItem('user');
     return (
       <RegisterLogin 
         onLoginSuccess={() => setCurrentPage('Dashboard')}
@@ -107,7 +116,7 @@ export default function App() {
           ) : currentPage === 'Guest Profile' ? (
             <GuestProfile />
           ) : currentPage === 'Rooms' ? (
-            <Rooms />
+            <Rooms onPageChange={setCurrentPage} />
           ) : currentPage === 'Finance' ? (
             <Finance />
           ) : currentPage === 'Reviews' ? (
@@ -121,7 +130,7 @@ export default function App() {
           ) : currentPage === 'Reservations' ? (
             <Reservations />
           ) : currentPage === 'Create New Room' ? (
-            <CreateNewRoom />
+            <CreateNewRoom onPageChange={setCurrentPage} />
           ) : (
              <div className="flex-1 flex items-center justify-center text-gray-400 font-medium">
                Select Dashboard, Inbox, Rooms, Finance, Invoice, Housekeeping, Calendar or Reviews from sidebar.

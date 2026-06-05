@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, Eye, Edit2, ArrowUpRight, ArrowDownRight, FileText, Clock, BadgeCheck, CalendarX, Home, MoreHorizontal } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 const trendData = [
@@ -52,6 +53,57 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function Reservations() {
+  const [reservationList, setReservationList] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/getReservations`);
+        const data = await res.json();
+        if (data.reservations) {
+          const mapped = data.reservations.map((r: any) => {
+            const start = r.checkInDate ? new Date(r.checkInDate) : new Date();
+            const end = r.checkOutDate ? new Date(r.checkOutDate) : new Date();
+            const nights = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+
+            const opt = { month: 'short', day: 'numeric' } as const;
+            const datesStr = `${start.toLocaleDateString('en-US', opt)} - ${end.toLocaleDateString('en-US', opt)}, ${end.getFullYear()}`;
+
+            return {
+              id: `#RES-${String(r.roomNumber || '101')}`,
+              name: r.guestName,
+              type: r.roomType,
+              room: String(r.roomNumber || '101'),
+              request: r.specialRequests || '-',
+              duration: `${nights} night${nights > 1 ? 's' : ''}`,
+              dates: datesStr,
+              status: r.reservationStatus === 'cancelled' ? 'Canceled' : r.reservationStatus.charAt(0).toUpperCase() + r.reservationStatus.slice(1),
+              source: 'Website',
+              payment: r.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'
+            };
+          });
+          setReservationList(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to load reservations:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReservations();
+  }, []);
+
+  const filteredReservations = reservationList.filter(res => {
+    const matchesSearch = res.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          res.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          res.room.includes(searchTerm);
+    const matchesStatus = statusFilter === 'All Status' || res.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   const getStatusStyles = (status: string) => {
     switch (status) {
       case 'Confirmed': return 'bg-[#edf5ff] dark:bg-blue-500/20 text-[#1c64f2] dark:text-blue-400';
@@ -236,12 +288,21 @@ export function Reservations() {
               <input 
                 type="text" 
                 placeholder="Search guest, status, etc" 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border-none rounded-full text-xs font-medium w-64 outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-gray-700 text-gray-900 dark:text-white transition-all"
               />
             </div>
-            <button className="text-xs bg-gray-50 hover:bg-gray-100 border border-gray-100 dark:border-gray-800 rounded-full px-4 py-2 font-semibold text-gray-700 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors">
-              All Status <ChevronDown className="h-3 w-3" />
-            </button>
+            <select 
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="text-xs bg-gray-50 hover:bg-gray-100 border border-gray-100 dark:border-gray-800 rounded-full px-4 py-2 font-semibold text-gray-750 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 outline-none cursor-pointer transition-colors"
+            >
+              <option value="All Status">All Status</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Pending">Pending</option>
+              <option value="Canceled">Canceled</option>
+            </select>
           </div>
         </div>
 
@@ -262,7 +323,7 @@ export function Reservations() {
               </tr>
             </thead>
             <tbody className="text-xs text-gray-700 dark:text-gray-300">
-              {reservations.map((res, idx) => (
+              {filteredReservations.map((res, idx) => (
                 <tr key={idx} className="border-b border-gray-50 dark:border-gray-850 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                   <td className="px-5 py-4">
                     <div className="font-bold text-gray-800 dark:text-white mb-0.5">{res.id}</div>

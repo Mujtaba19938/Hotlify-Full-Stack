@@ -1,24 +1,105 @@
 import React, { useState } from 'react';
 import { Edit2, UploadCloud } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
-export function CreateNewRoom() {
+interface CreateNewRoomProps {
+  onPageChange?: (page: string) => void;
+}
+
+export function CreateNewRoom({ onPageChange }: CreateNewRoomProps) {
   const [activeStatus, setActiveStatus] = useState('Active');
   const [smokingPolicy, setSmokingPolicy] = useState('Non-Smoking');
   const [earlyBookingToggle, setEarlyBookingToggle] = useState(true);
+  const [roomType, setRoomType] = useState('Premier Garden Suite');
+  const [aboutRoom, setAboutRoom] = useState("The Premier Garden Suite offers a serene escape with elegant interiors, modern amenities, and direct access to the hotel's lush garden. Perfect for guests seeking comfort, privacy, and natural surroundings.");
+  const [price, setPrice] = useState('270');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const BED_OPTIONS = ['King Bed', 'Twin Beds', 'Queen Beds', 'Sofa Bed'];
+  const VIEW_OPTIONS = ['City View', 'Sea View', 'Garden View', 'Pool View'];
+
+  const [bedTypes, setBedTypes] = useState<Record<string, boolean>>({
+    'King Bed': true, 'Twin Beds': false, 'Queen Beds': false, 'Sofa Bed': true,
+  });
+  const [bedQty, setBedQty] = useState<Record<string, number>>({
+    'King Bed': 1, 'Twin Beds': 1, 'Queen Beds': 1, 'Sofa Bed': 1,
+  });
+  const [viewTypes, setViewTypes] = useState<Record<string, boolean>>({
+    'City View': true, 'Sea View': false, 'Garden View': false, 'Pool View': false,
+  });
+
+  const toggleBed = (name: string) =>
+    setBedTypes(prev => ({ ...prev, [name]: !prev[name] }));
+  const changeBedQty = (name: string, delta: number) =>
+    setBedQty(prev => ({ ...prev, [name]: Math.max(1, (prev[name] || 1) + delta) }));
+  const toggleView = (name: string) =>
+    setViewTypes(prev => ({ ...prev, [name]: !prev[name] }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('roomType', roomType);
+      const numericPrice = Number(price.replace(/[^0-9.]/g, '')) || 270;
+      formData.append('price', String(numericPrice));
+      formData.append('status', activeStatus === 'Active' ? 'available' : 'maintenance');
+      formData.append('description', aboutRoom);
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      const res = await fetch(`${API_BASE_URL}/addroom`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage(`Success! Created Room #${data.roomNumber}.`);
+        setTimeout(() => {
+          if (onPageChange) {
+            onPageChange('Rooms');
+          }
+        }, 1500);
+      } else {
+        setMessage(`Error: ${data.message || 'Could not save room.'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage('Failed to save room. Connection error.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 w-full min-h-[700px]">
       
       {/* Left Column */}
       <div className="flex-1 flex flex-col gap-6 min-w-0">
+        {message && (
+          <div className={`p-4 rounded-2xl text-xs font-bold border transition-all ${
+            message.startsWith('Success') 
+              ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30' 
+              : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'
+          }`}>
+            {message}
+          </div>
+        )}
         
         {/* Basic Information */}
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col relative transition-all duration-300">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-white transition-colors">Basic Information</h3>
             <div className="flex items-center gap-2">
-              <button className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors">
-                Save
+              <button 
+                onClick={() => handleSave()}
+                disabled={saving}
+                className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors cursor-pointer"
+              >
+                {saving ? 'Saving...' : 'Save'}
               </button>
               <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors">
                 <Edit2 className="h-4 w-4" />
@@ -31,7 +112,8 @@ export function CreateNewRoom() {
               <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Room Type Name</label>
               <input 
                 type="text" 
-                defaultValue="Premier Garden Suite"
+                value={roomType}
+                onChange={e => setRoomType(e.target.value)}
                 className="w-full bg-gray-50/80 dark:bg-gray-800 border-none rounded-lg px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-colors"
               />
             </div>
@@ -40,7 +122,8 @@ export function CreateNewRoom() {
               <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1.5">About Room</label>
               <textarea 
                 rows={4}
-                defaultValue="The Premier Garden Suite offers a serene escape with elegant interiors, modern amenities, and direct access to the hotel's lush garden. Perfect for guests seeking comfort, privacy, and natural surroundings."
+                value={aboutRoom}
+                onChange={e => setAboutRoom(e.target.value)}
                 className="w-full bg-gray-50/80 dark:bg-gray-800 border-none rounded-lg px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 resize-none transition-colors"
               />
             </div>
@@ -138,8 +221,12 @@ export function CreateNewRoom() {
            <div className="flex justify-between items-center mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-white transition-colors">Pricing</h3>
             <div className="flex items-center gap-2">
-              <button className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors">
-                Save
+              <button 
+                onClick={() => handleSave()}
+                disabled={saving}
+                className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors cursor-pointer"
+              >
+                {saving ? 'Saving...' : 'Save'}
               </button>
               <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors">
                 <Edit2 className="h-4 w-4" />
@@ -153,7 +240,8 @@ export function CreateNewRoom() {
               <div className="relative">
                 <input 
                   type="text" 
-                  defaultValue="$270"
+                  value={price}
+                  onChange={e => setPrice(e.target.value)}
                   className="w-full bg-gray-50/80 dark:bg-gray-800 border-none rounded-lg pl-4 pr-16 py-2.5 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-colors"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-xs transition-colors">/ Night</span>
@@ -236,59 +324,36 @@ export function CreateNewRoom() {
                 <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500 transition-colors">*Qty input will appear if checked</span>
               </div>
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center bg-[#dcf344] dark:bg-blue-600 border-transparent transition-colors">
-                       <svg className="w-2.5 h-2.5 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                       </svg>
+                {BED_OPTIONS.map((bed) => {
+                  const checked = bedTypes[bed];
+                  return (
+                    <div key={bed} className="flex items-center justify-between">
+                      <label onClick={() => toggleBed(bed)} className="flex items-center gap-2 cursor-pointer">
+                        <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${checked ? 'bg-[#dcf344] dark:bg-blue-600 border-transparent' : 'border-gray-300 dark:border-gray-700'}`}>
+                          {checked && (
+                            <svg className="w-2.5 h-2.5 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-[13px] font-medium transition-colors ${checked ? 'text-gray-700 dark:text-gray-300' : 'text-gray-600 dark:text-gray-400'}`}>{bed}</span>
+                      </label>
+                      {checked && (
+                        <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-md px-2 py-1 transition-colors">
+                          <span className="text-xs font-semibold w-4 text-center text-gray-900 dark:text-white">{bedQty[bed]}</span>
+                          <div className="flex flex-col ml-1">
+                            <button type="button" onClick={() => changeBedQty(bed, 1)} className="cursor-pointer">
+                              <Chevron size={10} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" dir="up" />
+                            </button>
+                            <button type="button" onClick={() => changeBedQty(bed, -1)} className="cursor-pointer">
+                              <Chevron size={10} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" dir="down" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300 transition-colors">King Bed</span>
-                  </label>
-                  <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-md px-2 py-1 transition-colors">
-                    <span className="text-xs font-semibold w-4 text-center text-gray-900 dark:text-white">1</span>
-                    <div className="flex flex-col ml-1">
-                      <Chevron size={10} className="text-gray-500 dark:text-gray-400" dir="up" />
-                      <Chevron size={10} className="text-gray-500 dark:text-gray-400" dir="down" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center">
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-600 dark:text-gray-400 transition-colors">Twin Beds</span>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center">
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-600 dark:text-gray-400 transition-colors">Queen Beds</span>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center bg-[#dcf344] dark:bg-blue-600 border-transparent transition-colors">
-                       <svg className="w-2.5 h-2.5 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                       </svg>
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300 transition-colors">Sofa Bed</span>
-                  </label>
-                  <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-md px-2 py-1 transition-colors">
-                    <span className="text-xs font-semibold w-4 text-center text-gray-900 dark:text-white">1</span>
-                    <div className="flex flex-col ml-1">
-                      <Chevron size={10} className="text-gray-500 dark:text-gray-400" dir="up" />
-                      <Chevron size={10} className="text-gray-500 dark:text-gray-400" dir="down" />
-                    </div>
-                  </div>
-                </div>
-
+                  );
+                })}
               </div>
             </div>
 
@@ -329,29 +394,21 @@ export function CreateNewRoom() {
             <div>
                <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-3 transition-colors">View Type</label>
                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                 <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-750 flex items-center justify-center bg-[#dcf344] dark:bg-blue-600 border-transparent transition-colors">
-                       <svg className="w-2.5 h-2.5 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                       </svg>
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300 transition-colors">City View</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center">
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-600 dark:text-gray-400 transition-colors">Sea View</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center">
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-600 dark:text-gray-400 transition-colors">Garden View</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center">
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-600 dark:text-gray-400 transition-colors">Pool View</span>
-                  </label>
+                 {VIEW_OPTIONS.map((view) => {
+                   const checked = viewTypes[view];
+                   return (
+                     <label key={view} onClick={() => toggleView(view)} className="flex items-center gap-2 cursor-pointer">
+                       <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${checked ? 'bg-[#dcf344] dark:bg-blue-600 border-transparent' : 'border-gray-300 dark:border-gray-700'}`}>
+                         {checked && (
+                           <svg className="w-2.5 h-2.5 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                           </svg>
+                         )}
+                       </div>
+                       <span className={`text-[13px] font-medium transition-colors ${checked ? 'text-gray-700 dark:text-gray-300' : 'text-gray-600 dark:text-gray-400'}`}>{view}</span>
+                     </label>
+                   );
+                 })}
                </div>
             </div>
 
@@ -363,8 +420,12 @@ export function CreateNewRoom() {
            <div className="flex justify-between items-center mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-white transition-colors">Media</h3>
             <div className="flex items-center gap-2">
-              <button className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors">
-                Save
+              <button 
+                onClick={() => handleSave()}
+                disabled={saving}
+                className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors cursor-pointer"
+              >
+                {saving ? 'Saving...' : 'Save'}
               </button>
               <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors">
                 <Edit2 className="h-4 w-4" />
@@ -376,9 +437,26 @@ export function CreateNewRoom() {
              <UploadCloud className="w-8 h-8 text-gray-400 dark:text-gray-500 mb-3" />
              <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-200 mb-1 transition-colors">Drag and drop to upload Photo</p>
              <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mb-3 transition-colors">or</p>
-             <button className="bg-[#1c64f2] hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-[13px] font-semibold px-6 py-2 rounded-lg transition-colors shadow-sm mb-4">
+             <input 
+               type="file" 
+               id="room-image-input" 
+               accept="image/*"
+               className="hidden" 
+               onChange={e => {
+                 if (e.target.files && e.target.files[0]) {
+                   setImageFile(e.target.files[0]);
+                 }
+               }}
+             />
+             <label 
+               htmlFor="room-image-input"
+               className="bg-[#1c64f2] hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-[13px] font-semibold px-6 py-2 rounded-lg transition-colors shadow-sm mb-4 cursor-pointer"
+             >
                Upload Photo
-             </button>
+             </label>
+             {imageFile && (
+               <p className="text-xs text-indigo-650 dark:text-indigo-400 font-semibold mb-2">Selected: {imageFile.name}</p>
+             )}
              <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium text-center px-4 transition-colors">
                © Up to 5 MB per image in JPG, PNG, WEBP<br/>
                (Recommended: at least 4 images: bedroom, bathroom, view, and living area)

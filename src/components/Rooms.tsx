@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { 
-  Search, 
+import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
+import {
+  Search,
   ChevronDown, 
   SlidersHorizontal, 
   Square, 
@@ -91,8 +92,70 @@ const rooms = [
   }
 ];
 
-export function Rooms() {
-  const [activeRoom, setActiveRoom] = useState(rooms[0]);
+interface RoomsProps {
+  onPageChange?: (page: string) => void;
+}
+
+export function Rooms({ onPageChange }: RoomsProps) {
+  const [roomList, setRoomList] = useState<any[]>([]);
+  const [activeRoom, setActiveRoom] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/getRooms`);
+        const data = await res.json();
+        if (data.rooms) {
+          const mapped = data.rooms.map((room: any) => ({
+            id: room.roomNumber,
+            title: room.roomType,
+            description: room.description || 'Elegant suite with premium furnishings, city view, and private balcony.',
+            status: room.status === 'available' ? 'Available' : room.status === 'occupied' ? 'Fully Booked' : room.status.charAt(0).toUpperCase() + room.status.slice(1),
+            left: room.status === 'available' ? '5 Rooms Left' : '',
+            price: room.price,
+            size: '55 m²',
+            bed: '1 King Bed',
+            guests: '3 guests',
+            occupancy: room.status === 'occupied' ? '100%' : '80%',
+            image: room.image && room.image.startsWith('http') ? room.image : `${API_BASE_URL}/images/${room.image || 'default.jpg'}`,
+            isActive: room.isAvailable
+          }));
+          setRoomList(mapped);
+          if (mapped.length > 0) {
+            setActiveRoom(mapped[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch rooms:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRooms();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[500px]">
+        <div className="text-gray-500 dark:text-gray-400 font-semibold animate-pulse">Loading Rooms from Database...</div>
+      </div>
+    );
+  }
+
+  if (roomList.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[500px] gap-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="text-gray-500 dark:text-gray-400 font-semibold">No Rooms Found in Database</div>
+        <button 
+          onClick={() => onPageChange && onPageChange('Create New Room')}
+          className="bg-[#dcf344] dark:bg-blue-600 hover:bg-[#d4ed36] dark:hover:bg-blue-700 text-gray-900 dark:text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95 cursor-pointer"
+        >
+          Create First Room
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50/50 dark:bg-gray-950 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col xl:flex-row gap-6 w-full min-h-[700px]">
@@ -116,7 +179,10 @@ export function Rooms() {
               All Type <ChevronDown className="h-3 w-3" />
             </button>
             
-            <button className="bg-[#dcf344] dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-600 dark:hover:from-blue-500 dark:hover:to-indigo-500 dark:text-white px-4 py-1.5 rounded-full font-semibold text-gray-900 hover:bg-[#d4ed36] transition-colors text-sm flex-shrink-0">
+            <button 
+              onClick={() => onPageChange && onPageChange('Create New Room')}
+              className="bg-[#dcf344] dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-600 dark:hover:from-blue-500 dark:hover:to-indigo-500 dark:text-white px-4 py-1.5 rounded-full font-semibold text-gray-900 hover:bg-[#d4ed36] transition-colors text-sm flex-shrink-0 cursor-pointer"
+            >
               Add Room
             </button>
             
@@ -128,7 +194,7 @@ export function Rooms() {
 
         {/* Room List */}
         <div className="overflow-y-auto p-6 space-y-4 h-[calc(100vh-280px)] min-h-[500px]">
-          {rooms.map((room) => (
+          {roomList.map((room) => (
             <div 
               key={room.id}
               onClick={() => setActiveRoom(room)}

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreHorizontal, Search, Award, Calendar, Tag, Clock, CheckCircle2, ChevronRight, Star, X } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 export function GuestProfile() {
   // Profile state for full interactivity
@@ -13,11 +14,44 @@ export function GuestProfile() {
     address: 'Toronto, Canada'
   });
 
+  const [guestNumber, setGuestNumber] = useState<number | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({ ...profile });
   const [formError, setFormError] = useState('');
+
+  // Fetch guest on mount
+  useEffect(() => {
+    const fetchGuest = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/getGuests`);
+        const data = await res.json();
+        if (data.guests && data.guests.length > 0) {
+          const guest = data.guests[0];
+          const formattedDob = guest.dateOfBirth 
+            ? new Date(guest.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : 'July 19, 1995';
+
+          const mapped = {
+            name: `${guest.firstName} ${guest.lastName || ''}`.trim(),
+            gender: guest.gender || 'Male',
+            nationality: guest.nationality || 'Canadian',
+            dob: formattedDob,
+            phone: guest.phone || '+1 647-880-2356',
+            email: guest.email || 'ethan.brown@example.com',
+            address: guest.addressLine1 || 'Toronto, Canada'
+          };
+          setProfile(mapped);
+          setFormData(mapped);
+          setGuestNumber(guest.guestNumber);
+        }
+      } catch (err) {
+        console.error("Failed to load guests:", err);
+      }
+    };
+    fetchGuest();
+  }, []);
 
   const handleEditClick = () => {
     setFormData({ ...profile });
@@ -32,7 +66,7 @@ export function GuestProfile() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       setFormError('Please enter a full name.');
@@ -47,9 +81,42 @@ export function GuestProfile() {
       return;
     }
 
-    setProfile({ ...formData });
-    setFormError('');
-    setIsEditModalOpen(false);
+    try {
+      const names = formData.name.trim().split(/\s+/);
+      const firstName = names[0];
+      const lastName = names.slice(1).join(' ');
+
+      const payload = {
+        guestNumber: guestNumber || 1001,
+        firstName,
+        lastName,
+        email: formData.email,
+        phone: formData.phone,
+        gender: formData.gender,
+        dateOfBirth: new Date(formData.dob),
+        addressLine1: formData.address,
+        nationality: formData.nationality,
+        status: 'active'
+      };
+
+      const res = await fetch(`${API_BASE_URL}/updateguest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setProfile({ ...formData });
+        setFormError('');
+        setIsEditModalOpen(false);
+      } else {
+        setFormError(data.message || 'Could not save guest updates.');
+      }
+    } catch (err) {
+      console.error(err);
+      setFormError('Failed to save guest changes. Server connection failed.');
+    }
   };
 
   return (
